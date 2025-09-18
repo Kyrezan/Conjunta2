@@ -2,16 +2,26 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, X } from "lucide-react";
+import { Upload, X, List, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+
+interface ClothingItem {
+  id: string;
+  url: string;
+  category: 'superior' | 'inferior';
+  createdAt: Date;
+}
 
 interface ClosetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImageAdd: (imageUrl: string, category: 'superior' | 'inferior') => void;
+  onImageDelete: (id: string) => void;
+  clothingItems: ClothingItem[];
 }
 
-export const ClosetModal = ({ isOpen, onClose, onImageAdd }: ClosetModalProps) => {
+export const ClosetModal = ({ isOpen, onClose, onImageAdd, onImageDelete, clothingItems }: ClosetModalProps) => {
+  const [mode, setMode] = useState<'menu' | 'add' | 'list'>('menu');
   const [selectedCategory, setSelectedCategory] = useState<'superior' | 'inferior' | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -66,6 +76,7 @@ export const ClosetModal = ({ isOpen, onClose, onImageAdd }: ClosetModalProps) =
       setSelectedFile(null);
       setPreviewUrl(null);
       setSelectedCategory(null);
+      setMode('menu');
       onClose();
     } catch (error) {
       toast({
@@ -85,21 +96,117 @@ export const ClosetModal = ({ isOpen, onClose, onImageAdd }: ClosetModalProps) =
     setSelectedFile(null);
     setPreviewUrl(null);
     setSelectedCategory(null);
+    setMode('menu');
     onClose();
+  };
+
+  const handleDelete = (id: string) => {
+    onImageDelete(id);
+    toast({
+      title: "Prenda eliminada",
+      description: "La prenda se eliminó correctamente.",
+    });
+  };
+
+  const getCategoryLabel = (category: 'superior' | 'inferior') => {
+    return category === 'superior' ? '👕 Superior' : '👖 Inferior';
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md mx-auto">
+      <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">
-            Agregar al Closet
+            {mode === 'menu' && 'Menú Closet'}
+            {mode === 'add' && 'Agregar Prenda'}
+            {mode === 'list' && 'Todas las Prendas'}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* File Upload Section */}
-          <div className="space-y-4">
+          {mode === 'menu' && (
+            /* Menu Principal */
+            <div className="space-y-4">
+              <Button
+                onClick={() => setMode('add')}
+                className="w-full py-4 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:opacity-90 transition"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Agregar Nueva Prenda
+              </Button>
+              <Button
+                onClick={() => setMode('list')}
+                variant="outline"
+                className="w-full py-4"
+              >
+                <List className="w-5 h-5 mr-2" />
+                Ver Todas las Prendas ({clothingItems.length})
+              </Button>
+            </div>
+          )}
+
+          {mode === 'list' && (
+            /* Lista de Prendas */
+            <div className="space-y-4">
+              <Button
+                onClick={() => setMode('menu')}
+                variant="outline"
+                className="w-full"
+              >
+                ← Volver al Menú
+              </Button>
+              
+              {clothingItems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No hay prendas guardadas</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {clothingItems
+                    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 transition"
+                      >
+                        <img
+                          src={item.url}
+                          alt="Prenda"
+                          className="w-16 h-16 object-cover rounded-md"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium">{getCategoryLabel(item.category)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.createdAt.toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => handleDelete(item.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {mode === 'add' && (
+            /* Formulario Agregar Prenda */
+            <>
+              <Button
+                onClick={() => setMode('menu')}
+                variant="outline"
+                className="w-full"
+              >
+                ← Volver al Menú
+              </Button>
+              {/* File Upload Section */}
+              <div className="space-y-4">
             <div className="text-center">
               {!previewUrl ? (
                 <div className="border-2 border-dashed border-border rounded-xl p-8 hover:border-primary transition">
@@ -144,11 +251,11 @@ export const ClosetModal = ({ isOpen, onClose, onImageAdd }: ClosetModalProps) =
                   </Button>
                 </div>
               )}
-            </div>
-          </div>
+                </div>
+              </div>
 
-          {/* Category Selection */}
-          {previewUrl && (
+              {/* Category Selection */}
+              {previewUrl && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-center">
                 ¿Dónde quieres guardar esta imagen?
@@ -173,11 +280,11 @@ export const ClosetModal = ({ isOpen, onClose, onImageAdd }: ClosetModalProps) =
                   </p>
                 </button>
               </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          {/* Upload Button */}
-          {previewUrl && selectedCategory && (
+              {/* Upload Button */}
+              {previewUrl && selectedCategory && (
             <Button
               onClick={handleUpload}
               disabled={isUploading}
@@ -191,7 +298,9 @@ export const ClosetModal = ({ isOpen, onClose, onImageAdd }: ClosetModalProps) =
               ) : (
                 'Agregar al Closet'
               )}
-            </Button>
+                </Button>
+              )}
+            </>
           )}
         </div>
       </DialogContent>

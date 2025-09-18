@@ -68,6 +68,10 @@ export const ClosetApp = () => {
     setClothingItems(prev => [...prev, newItem]);
   };
 
+  const handleImageDelete = (id: string) => {
+    setClothingItems(prev => prev.filter(item => item.id !== id));
+  };
+
   const handleImageSelect = (galleryType: string, index: number) => {
     console.log(`Selected ${galleryType} image at index ${index}`);
     // Here you could add functionality like full-screen view, edit, delete, etc.
@@ -82,12 +86,9 @@ export const ClosetApp = () => {
             <Shirt className="w-6 h-6 text-primary-foreground" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            Mi Closet
+            Conjunta2
           </h1>
         </div>
-        <p className="text-muted-foreground text-lg">
-          Organiza tu ropa por categorías y crea outfits perfectos
-        </p>
       </header>
 
       {/* Main Content */}
@@ -142,6 +143,8 @@ export const ClosetApp = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onImageAdd={handleImageAdd}
+        onImageDelete={handleImageDelete}
+        clothingItems={clothingItems}
       />
     </div>
   );
