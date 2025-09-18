@@ -55,6 +55,10 @@ export const ClosetApp = () => {
     console.log(`Selected ${galleryType} image at index ${index}`);
     // Here you could add functionality like full-screen view, edit, delete, etc.
   };
+
+  const handleImageDelete = (id: string) => {
+    setClothingItems(prev => prev.filter(item => item.id !== id));
+  };
   return <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       {/* Header */}
       <header className="text-center mb-8 animate-fade-in">
@@ -113,6 +117,12 @@ export const ClosetApp = () => {
       </Button>
 
       {/* Upload Modal */}
-      <ClosetModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onImageAdd={handleImageAdd} />
+      <ClosetModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onImageAdd={handleImageAdd}
+        onImageDelete={handleImageDelete}
+        clothingItems={clothingItems}
+      />
     </div>;
 };
