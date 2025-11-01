@@ -4,23 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, X, List, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface ClothingItem {
-  id: string;
-  url: string;
-  category: 'superior' | 'inferior';
-  createdAt: Date;
-}
+import { useClothingItems, ClothingItem } from "@/hooks/useClothingItems";
 
 interface ClosetModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImageAdd: (imageUrl: string, category: 'superior' | 'inferior') => void;
   onImageDelete: (id: string) => void;
   clothingItems: ClothingItem[];
+  userId: string | undefined;
 }
 
-export const ClosetModal = ({ isOpen, onClose, onImageAdd, onImageDelete, clothingItems }: ClosetModalProps) => {
+export const ClosetModal = ({ isOpen, onClose, onImageDelete, clothingItems, userId }: ClosetModalProps) => {
+  const { addItem } = useClothingItems(userId);
   const [mode, setMode] = useState<'menu' | 'add' | 'list'>('menu');
   const [selectedCategory, setSelectedCategory] = useState<'superior' | 'inferior' | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -61,23 +56,19 @@ export const ClosetModal = ({ isOpen, onClose, onImageAdd, onImageDelete, clothi
 
     setIsUploading(true);
     try {
-      // For now, we'll create a local URL for the image
-      // This will be replaced with Supabase storage upload later
-      const imageUrl = URL.createObjectURL(selectedFile);
+      const result = await addItem(selectedFile, selectedCategory);
       
-      onImageAdd(imageUrl, selectedCategory);
-      
-      toast({
-        title: "¡Imagen agregada!",
-        description: `La imagen se guardó en la categoría ${selectedCategory === 'superior' ? 'Superior' : 'Inferior'}.`,
-      });
-
-      // Reset modal state
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setSelectedCategory(null);
-      setMode('menu');
-      onClose();
+      if (result) {
+        // Reset modal state
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setSelectedCategory(null);
+        setMode('menu');
+        onClose();
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -163,7 +154,7 @@ export const ClosetModal = ({ isOpen, onClose, onImageAdd, onImageDelete, clothi
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {clothingItems
-                    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .map((item) => (
                       <div
                         key={item.id}
@@ -174,10 +165,10 @@ export const ClosetModal = ({ isOpen, onClose, onImageAdd, onImageDelete, clothi
                           alt="Prenda"
                           className="w-16 h-16 object-cover rounded-md"
                         />
-                        <div className="flex-1">
+                         <div className="flex-1">
                           <p className="font-medium">{getCategoryLabel(item.category)}</p>
                           <p className="text-sm text-muted-foreground">
-                            {item.createdAt.toLocaleDateString()}
+                            {new Date(item.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         <Button

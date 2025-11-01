@@ -2,63 +2,42 @@ import { useState } from "react";
 import { Gallery } from "./Gallery";
 import { ClosetModal } from "./ClosetModal";
 import { Button } from "@/components/ui/button";
-import { Plus, Shirt } from "lucide-react";
-import sampleTop1 from "@/assets/sample-top-1.jpg";
-import sampleTop2 from "@/assets/sample-top-2.jpg";
-import sampleBottom1 from "@/assets/sample-bottom-1.jpg";
-import sampleBottom2 from "@/assets/sample-bottom-2.jpg";
-interface ClothingItem {
-  id: string;
-  url: string;
-  category: 'superior' | 'inferior';
-  createdAt: Date;
-}
+import { Plus, Shirt, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useClothingItems } from "@/hooks/useClothingItems";
+
 export const ClosetApp = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Initialize with sample images
-  const [clothingItems, setClothingItems] = useState<ClothingItem[]>([{
-    id: '1',
-    url: sampleTop1,
-    category: 'superior',
-    createdAt: new Date()
-  }, {
-    id: '2',
-    url: sampleTop2,
-    category: 'superior',
-    createdAt: new Date()
-  }, {
-    id: '3',
-    url: sampleBottom1,
-    category: 'inferior',
-    createdAt: new Date()
-  }, {
-    id: '4',
-    url: sampleBottom2,
-    category: 'inferior',
-    createdAt: new Date()
-  }]);
+  const { user, signOut } = useAuth();
+  const { items, loading, deleteItem } = useClothingItems(user?.id);
 
   // Separate items by category
-  const superiorItems = clothingItems.filter(item => item.category === 'superior').sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map(item => item.url);
-  const inferiorItems = clothingItems.filter(item => item.category === 'inferior').sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map(item => item.url);
-  const handleImageAdd = (imageUrl: string, category: 'superior' | 'inferior') => {
-    const newItem: ClothingItem = {
-      id: Date.now().toString(),
-      url: imageUrl,
-      category,
-      createdAt: new Date()
-    };
-    setClothingItems(prev => [...prev, newItem]);
-  };
+  const superiorItems = items
+    .filter(item => item.category === 'superior')
+    .map(item => item.url);
+  
+  const inferiorItems = items
+    .filter(item => item.category === 'inferior')
+    .map(item => item.url);
+
   const handleImageSelect = (galleryType: string, index: number) => {
     console.log(`Selected ${galleryType} image at index ${index}`);
-    // Here you could add functionality like full-screen view, edit, delete, etc.
   };
 
-  const handleImageDelete = (id: string) => {
-    setClothingItems(prev => prev.filter(item => item.id !== id));
+  const handleImageDelete = async (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      await deleteItem(id, item.url);
+    }
   };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 p-4">
       {/* Header */}
       <header className="text-center mb-8 animate-fade-in">
@@ -70,7 +49,15 @@ export const ClosetApp = () => {
             Mi Closet
           </h1>
         </div>
-        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={signOut}
+          className="text-muted-foreground hover:text-destructive"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Cerrar Sesión
+        </Button>
       </header>
 
       {/* Main Content */}
@@ -120,9 +107,9 @@ export const ClosetApp = () => {
       <ClosetModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        onImageAdd={handleImageAdd}
         onImageDelete={handleImageDelete}
-        clothingItems={clothingItems}
+        clothingItems={items}
+        userId={user?.id}
       />
     </div>;
 };
